@@ -4,69 +4,12 @@ import time
 import tkinter as tk
 from PIL import Image, ImageTk
 
-# Function to process video feed
-def process_video_feed(cap, label):
-    print("Processing video feed...")
-    ret, frame = cap.read()
-    if ret:
-        height, width, _ = frame.shape
-        blob = cv2.dnn.blobFromImage(frame, 0.00392, (416, 416), (0, 0, 0), True, crop=False)
-        net.setInput(blob)
-        outs = net.forward(output_layers)
 
-        # Initialize lists to store bounding boxes, confidences, and class IDs
-        boxes = []
-        confidences = []
-        class_ids = []
 
-        # Process detections
-        for out in outs:
-            for detection in out:
-                scores = detection[5:]
-                class_id = np.argmax(scores)
-                confidence = scores[class_id]
-                if confidence > 0.5 and class_id in vehicle_class_ids:
-                    # Object detected as a vehicle
-                    center_x = int(detection[0] * width)
-                    center_y = int(detection[1] * height)
-                    w = int(detection[2] * width)
-                    h = int(detection[3] * height)
-
-                    # Rectangle coordinates
-                    x = int(center_x - w / 2)
-                    y = int(center_y - h / 2)
-
-                    # Add bounding box, confidence, and class ID to lists
-                    boxes.append([x, y, w, h])
-                    confidences.append(float(confidence))
-                    class_ids.append(class_id)
-
-        # Apply non-maximum suppression to remove redundant bounding boxes
-        indices = cv2.dnn.NMSBoxes(boxes, confidences, score_threshold=0.5, nms_threshold=0.4)
-
-        # Draw bounding boxes and count vehicles
-        for i in indices.flatten():
-            x, y, w, h = boxes[i]
-            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
-        cv2.putText(frame, f'Vehicles: {len(indices)}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-
-        # Convert the frame to an ImageTk object
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        frame = Image.fromarray(frame)
-        frame = ImageTk.PhotoImage(image=frame)
-
-        # Update the label with the new frame
-        label.config(image=frame)
-        label.image = frame
-
-        print("Finished processing video feed.")
-        # Call this function again after a delay
-        label.after(20, process_video_feed, cap, label)
-    else:
-        print("Failed to read frame from video feed.")
+frames = 0
 
 # Load YOLO
-net = cv2.dnn.readNet("/home/john/code/yolov3.weights", "yolov3.cfg")
+net = cv2.dnn.readNet("yolov3.weights", "yolov3.cfg")
 classes = []
 with open("coco.names", "r") as f:
     classes = [line.strip() for line in f.readlines()]
@@ -78,25 +21,72 @@ output_layers = [layer_names[i - 1] for i in net.getUnconnectedOutLayers()]
 # Define vehicle class IDs
 vehicle_class_ids = [2, 3, 5, 7]  # car, truck, bus, motorbike
 
-# Open video captures
-caps = [cv2.VideoCapture("Traffic IP Camera video.mp4") for _ in range(4)]
+# Open video capture objects (replace with your video paths)
+video_paths = ["Traffic IP Camera video.mp4", "Traffic IP Camera video.mp4", "Traffic IP Camera video.mp4", "Traffic IP Camera video.mp4"]
+video_captures = [cv2.VideoCapture(path) for path in video_paths]
 
-# Create Tkinter window
+# Function to capture video, perform detection, and update label
+def update_video_feed(label, video_capture, frames=0):
+    ret, frame = video_capture.read()
+    if ret:
+        # Process frame with vehicle detection logic
+        blob = cv2.dnn.blobFromImage(frame, 0.00392, (416, 416), (0, 0, 0), True, crop=False)
+        net.setInput(blob)
+        outs = net.forward(output_layers)
+
+        # Process detections
+        for out in outs:
+            for detection in out:
+                scores = detection[5:]
+                class_id = np.argmax(scores)
+                confidence = scores[class_id]
+                if class_id in vehicle_class_ids and confidence > 0.5:
+                    # Process the detection (draw bounding box, etc.)
+                    box = detection[0:4] * np.array([width, height, width, height])
+                    (x, y, w, h) = box.astype("int")
+                    cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+
+        # Convert OpenCV frame to RGB
+        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+        # Convert OpenCV image to Tkinter format
+        image = Image.fromarray(frame_rgb)
+        photo = ImageTk.PhotoImage(image)
+
+        # Update label with the new image
+        label.config(image=photo)
+        label.image = photo
+
+        # Schedule next frame update
+        label.after(33, update_video_feed, label, video_capture, frames + 1)
+    else:
+        # Handle end of video or errors
+        print("End of video or error occurred")
+
+
+# Define video feed layouts
+width, height = 320, 240  # Example frame dimensions
+grid_cols, grid_rows = 2, 2  # 2x2 grid
+
+# Create the main window
 root = tk.Tk()
-root.title("Multi-Feed Vehicle Detection")
+root.title("Vehicle Detection - 4 Feeds")
 
-# Create labels to display video feeds
-labels = [tk.Label(root) for _ in range(4)]
-for i, label in enumerate(labels):
-    label.grid(row=i // 2, column=i % 2)
+# Create empty labels to hold video frames
+video_labels = []
+for i in range(grid_rows):
+    for j in range(grid_cols):
+        label = tk.Label(root, width=width, height=height)
+        label.grid(row=i, column=j)
+        video_labels.append(label)
 
-# Process each video feed
-for cap, label in zip(caps, labels):
-    process_video_feed(cap, label)
+# Start video updates for each label
+for i, label in enumerate(video_labels):
+    update_video_feed(label, video_captures[i])
 
-# Run the Tkinter event loop
+# Start the main event loop for tkinter
 root.mainloop()
 
-# Release video captures
-for cap in caps:
+# Release video captures when closing (optional)
+for cap in video_captures:
     cap.release()
