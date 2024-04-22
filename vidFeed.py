@@ -4,7 +4,7 @@ import time
 
 frames=0
 # Load YOLO
-net = cv2.dnn.readNet("/home/john/code/yolov3.weights", "yolov3.cfg")
+net = cv2.dnn.readNet("yolov3.weights", "yolov3.cfg")
 classes = []
 with open("coco.names", "r") as f:
     classes = [line.strip() for line in f.readlines()]
@@ -17,7 +17,7 @@ output_layers = [layer_names[i - 1] for i in net.getUnconnectedOutLayers()]
 vehicle_class_ids = [2, 3, 5, 7]  # car, truck, bus, motorbike
 
 # Open video capture
-cap = cv2.VideoCapture("/home/john/code/minipro/Traffic IP Camera video.mp4")  # Capture from video file
+cap = cv2.VideoCapture("Traffic IP Camera video.mp4")  # Capture from video file
 
 # last_frame_time = time.time()
 
