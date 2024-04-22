@@ -1,35 +1,48 @@
 import tkinter as tk
 import cv2
 from PIL import Image, ImageTk
+import threading
 
-class VideoFeed:
-    def __init__(self, master, video_source=0):
-        self.master = master
-        self.video_source = video_source
-        self.vid = cv2.VideoCapture("Traffic IP Camera video.mp4")
-        
-        self.canvas = tk.Canvas(master, width=self.vid.get(cv2.CAP_PROP_FRAME_WIDTH), height=self.vid.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        self.canvas.pack()
-        
-        self.update()
+def get_video_dimensions(video_source):
+    vid = cv2.VideoCapture(video_source)
+    width = int(vid.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(vid.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    vid.release()
+    return width, height
 
-    def update(self):
-        ret, frame = self.vid.read()
-        if ret:
-            self.photo = ImageTk.PhotoImage(image=Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)))
-            self.canvas.create_image(0, 0, anchor=tk.NW, image=self.photo)
+def update_video_feed(canvas, video_source, delay):
+    width, height = get_video_dimensions(video_source)
+    canvas.config(width=width, height=height)  # Set canvas size to match video dimensions
+
+    vid = cv2.VideoCapture(video_source)
+    while True:
+        ret, frame = vid.read()
+        if not ret:
+            break
         
-        self.master.after(10, self.update)
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        frame = Image.fromarray(frame)
+
+        photo = ImageTk.PhotoImage(image=frame)
+        canvas.create_image(0, 0, anchor=tk.NW, image=photo)
+        canvas.photo = photo  # Keep a reference to prevent garbage collection
+        canvas.update()  # Update the canvas to show the new frame
+        cv2.waitKey(delay)
+
+    vid.release()
 
 def main():
     root = tk.Tk()
     root.title("Video Feed Grid")
 
-    # Create a 2x2 grid
-    for row in range(2):
-        for col in range(2):
-            video_feed = VideoFeed(root)
-            video_feed.canvas.grid(row=row, column=col)
+    video_sources = ["Traffic IP Camera video.mp4"] * 4  # Provide paths to your video files
+    delays = [0, 33, 66, 99]  # Delay for each canvas in milliseconds (0, 1, 2, 3 times 33 milliseconds)
+
+    for i in range(2):
+        for j in range(2):
+            canvas = tk.Canvas(root)  # No need to specify width and height initially
+            canvas.grid(row=i, column=j)
+            threading.Thread(target=update_video_feed, args=(canvas, video_sources[i*2+j], delays[i*2+j])).start()
 
     root.mainloop()
 
