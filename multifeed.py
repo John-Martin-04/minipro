@@ -1,9 +1,5 @@
 import cv2
 import numpy as np
-import tkinter as tk
-from PIL import Image, ImageTk
-import threading
-import time
 
 # Load YOLO
 net = cv2.dnn.readNet("yolov3.weights", "yolov3.cfg")
@@ -18,80 +14,103 @@ output_layers = [layer_names[i - 1] for i in net.getUnconnectedOutLayers()]
 # Define vehicle class IDs
 vehicle_class_ids = [2, 3, 5, 7]  # car, truck, bus, motorbike
 
-# Open video capture objects (replace with your video paths)
-video_paths = ["Traffic IP Camera video.mp4", "Traffic IP Camera video.mp4", "Traffic IP Camera video.mp4", "Traffic IP Camera video.mp4"]
-video_captures = [cv2.VideoCapture(path) for path in video_paths]
+# Open video captures
+video_files = ["video1.mp4", "video2.mp4", "video3.mp4", "video4.mp4"]
+caps = [cv2.VideoCapture(file) for file in video_files]
 
-# Function to capture video, perform detection, and update label
-def update_video_feed(label, video_capture):
-    while True:
-        ret, frame = video_capture.read()
-        if ret:
-            try:
-                # Process frame with vehicle detection logic
-                blob = cv2.dnn.blobFromImage(frame, 0.00392, (416, 416), (0, 0, 0), True, crop=False)
-                net.setInput(blob)
-                outs = net.forward(output_layers)
+# Set up grid layout for displaying video feeds
+rows = 2
+cols = 2
+grid_size = (rows, cols)
+grid_width = 800
+grid_height = 600
+output_frame = np.zeros((grid_height, grid_width, 3), dtype=np.uint8)
 
-                # Process detections
-                for out in outs:
-                    for detection in out:
-                        scores = detection[5:]
-                        class_id = np.argmax(scores)
-                        confidence = scores[class_id]
-                        if class_id in vehicle_class_ids and confidence > 0.5:
-                            # Process the detection (draw bounding box, etc.)
-                            height, width, _ = frame.shape
-                            box = detection[0:4] * np.array([width, height, width, height])
-                            (x, y, w, h) = box.astype("int")
-                            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+# Process each video feed
+while True:
+    for i, cap in enumerate(caps):
+        # Read every 25th frame
+        for _ in range(25):
+            ret, frame = cap.read()
+            if not ret:
+                print("Error: Couldn't read frame.")
+                break
 
-                # Convert OpenCV frame to RGB
-                frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-
-                # Convert OpenCV image to Tkinter format
-                image = Image.fromarray(frame_rgb)
-                photo = ImageTk.PhotoImage(image)
-
-                # Update label with the new image
-                label.config(image=photo)
-                label.image = photo
-
-                # Delay for 33 milliseconds (30 fps)
-                time.sleep(0.033)
-            except Exception as e:
-                print("Error:", e)
-        else:
-            print("End of video or error occurred")
+        if not ret:
             break
 
-# Create the main window
-root = tk.Tk()
-root.title("Vehicle Detection - 4 Feeds")
+        # Resize frame to fit grid
+        frame = cv2.resize(frame, (grid_width // cols, grid_height // rows))
 
-# Define video feed layouts
-width, height = 320, 240  # Example frame dimensions
-grid_cols, grid_rows = 2, 2  # 2x2 grid
+        height, width, _ = frame.shape
+        blob = cv2.dnn.blobFromImage(frame, 0.00392, (416, 416), (0, 0, 0), True, crop=False)
+        net.setInput(blob)
+        outs = net.forward(output_layers)
 
-# Create empty labels to hold video frames
-video_labels = []
-for i in range(grid_rows):
-    for j in range(grid_cols):
-        label = tk.Label(root, width=width, height=height)
-        label.grid(row=i, column=j)
-        video_labels.append(label)
+        # Initialize lists to store bounding boxes, confidences, and class IDs
+        boxes = []
+        confidences = []
+        class_ids = []
 
-# Start video updates for each label in a separate thread
-threads = []
-for label, video_capture in zip(video_labels, video_captures):
-    thread = threading.Thread(target=update_video_feed, args=(label, video_capture))
-    thread.daemon = True  # Make the thread a daemon so it terminates when the main thread terminates
-    thread.start()
-    threads.append(thread)
+        # Process detections
+        for out in outs:
+            for detection in out:
+                scores = detection[5:]
+                class_id = np.argmax(scores)
+                confidence = scores[class_id]
+                if confidence > 0.5 and class_id in vehicle_class_ids:
+                    # Object detected as a vehicle
+                    center_x = int(detection[0] * width)
+                    center_y = int(detection[1] * height)
+                    w = int(detection[2] * width)
+                    h = int(detection[3] * height)
 
-# Start the main event loop for tkinter
-root.mainloop()
+                    # Rectangle coordinates
+                    x = int(center_x - w / 2)
+                    y = int(center_y - h / 2)
 
-# Release video captures when closing (optional)
-for cap in video_captures:
+                    # Add bounding box, confidence, and class ID to lists
+                    boxes.append([x, y, w, h])
+                    confidences.append(float(confidence))
+                    class_ids.append(class_id)
+
+        # Apply non-maximum suppression to remove redundant bounding boxes
+        indices = cv2.dnn.NMSBoxes(boxes, confidences, score_threshold=0.5, nms_threshold=0.4)
+
+   # Draw bounding boxes and count vehicles
+    for i in indices.flatten():
+      x, y, w, h = boxes[i]
+      cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+      cv2.putText(frame, f'Vehicle', (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+    for i, cap in enumerate(caps): 
+
+   # Place frame in grid
+      y_start = (i // cols) * (grid_height // rows)
+      y_end = y_start + (grid_height // rows)  # Corrected calculation
+      if y_end > grid_height:
+            y_end = grid_height
+      x_start = (i % cols) * (grid_width // cols)
+      x_end = x_start + (grid_width // cols)
+      if x_end > grid_width:
+            x_end = grid_width
+
+      print("x_start:", x_start)
+      print("x_end:", x_end)
+      print("y_start:", y_start)
+      print("y_end:", y_end)
+      print("Frame shape:", frame.shape)
+      print("Output frame slice shape:", output_frame[y_start:y_end, x_start:x_end].shape)
+
+      output_frame[y_start:y_end, x_start:x_end] = frame
+
+    # Display grid
+    cv2.imshow("Grid", output_frame)
+
+    # Check for user input to quit
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+# Release video captures and close OpenCV windows
+for cap in caps:
     cap.release()
+cv2.destroyAllWindows()
