@@ -66,6 +66,7 @@ y = {'right':[348,370,398], 'down':[0,0,0], 'left':[498,466,436], 'up':[800,800,
 vehicles = {'right': {0:[], 1:[], 2:[], 'crossed':0}, 'down': {0:[], 1:[], 2:[], 'crossed':0}, 'left': {0:[], 1:[], 2:[], 'crossed':0}, 'up': {0:[], 1:[], 2:[], 'crossed':0}}
 vehicleTypes = {0:'car', 1:'bus', 2:'truck', 3:'bike'}
 directionNumbers = {0:'right', 1:'down', 2:'left', 3:'up'}
+laneCount=[[0,0,0,0] for _ in range(4)]
 
 # Coordinates of signal image, timer, and vehicle count
 signalCoods = [(530,230),(810,230),(810,570),(530,570)]
@@ -280,7 +281,7 @@ def initialize():
 def setTime():
     global noOfCars, noOfBikes, noOfBuses, noOfTrucks, noOfRickshaws, noOfLanes
     global carTime, busTime, truckTime, rickshawTime, bikeTime
-    os.system("say detecting vehicles, "+directionNumbers[(currentGreen+1)%noOfSignals])
+    # os.system("say detecting vehicles, "+directionNumbers[(currentGreen+1)%noOfSignals])
 #    detection_result=detection(currentGreen,tfnet)
 #    greenTime = math.ceil(((noOfCars*carTime) + (noOfRickshaws*rickshawTime) + (noOfBuses*busTime) + (noOfBikes*bikeTime))/(noOfLanes+1))
 #    if(greenTime<defaultMinimum):
@@ -325,7 +326,7 @@ def setTime():
 def repeat():
     global currentGreen, currentYellow, nextGreen
     while(signals[currentGreen].green>0):   # while the timer of current green signal is not zero
-        printStatus()
+        # printStatus()
         updateValues()
         if(signals[(currentGreen+1)%(noOfSignals)].red==detectionTime):    # set time of next green signal 
             thread = threading.Thread(name="detection",target=setTime, args=())
@@ -341,7 +342,7 @@ def repeat():
         for vehicle in vehicles[directionNumbers[currentGreen]][i]:
             vehicle.stop = defaultStop[directionNumbers[currentGreen]]
     while(signals[currentGreen].yellow>0):  # while the timer of current yellow signal is not zero
-        printStatus()
+        # printStatus()
         updateValues()
         time.sleep(1)
     currentYellow = 0   # set yellow signal off
@@ -357,16 +358,16 @@ def repeat():
     repeat()     
 
 # Print the signal timers on cmd
-def printStatus():                                                                                           
-	for i in range(0, noOfSignals):
-		if(i==currentGreen):
-			if(currentYellow==0):
-				print(" GREEN TS",i+1,"-> r:",signals[i].red," y:",signals[i].yellow," g:",signals[i].green)
-			else:
-				print("YELLOW TS",i+1,"-> r:",signals[i].red," y:",signals[i].yellow," g:",signals[i].green)
-		else:
-			print("   RED TS",i+1,"-> r:",signals[i].red," y:",signals[i].yellow," g:",signals[i].green)
-	print()
+# def printStatus():                                                                                           
+# 	for i in range(0, noOfSignals):
+# 		if(i==currentGreen):
+# 			if(currentYellow==0):
+# 				print(" GREEN TS",i+1,"-> r:",signals[i].red," y:",signals[i].yellow," g:",signals[i].green)
+# 			else:
+# 				print("YELLOW TS",i+1,"-> r:",signals[i].red," y:",signals[i].yellow," g:",signals[i].green)
+# 		else:
+# 			print("   RED TS",i+1,"-> r:",signals[i].red," y:",signals[i].yellow," g:",signals[i].green)
+# 	print()
 
 # Update values of the signal timers after every second
 def updateValues():
@@ -390,23 +391,27 @@ def generateVehicles():
             else:
                 lane_number = random.randint(0, 1) + 1
             will_turn = 0
-            if(lane_number==2):
-                temp = random.randint(0,4)
-                if(temp<=2):
+            if lane_number == 2:
+                temp = random.randint(0, 4)
+                if temp <= 2:
                     will_turn = 1
-                elif(temp>2):
+                elif temp > 2:
                     will_turn = 0
-            temp = random.randint(0,999)
+            temp = random.randint(0, 999)
             direction_number = 0
-            a = [400,800,900,1000]
-            if(temp<a[0]):
+            a = [400, 800, 900, 1000]
+            if temp < a[0]:
                 direction_number = 0
-            elif(temp<a[1]):
+            elif temp < a[1]:
                 direction_number = 1
-            elif(temp<a[2]):
+            elif temp < a[2]:
                 direction_number = 2
-            elif(temp<a[3]):
+            elif temp < a[3]:
                 direction_number = 3
+            
+            # Store the generated vehicle according to its lane number in the laneCount list
+            laneCount[lane_number][direction_number] += 1
+
             Vehicle(lane_number, vehicleTypes[vehicle_type], direction_number, directionNumbers[direction_number], will_turn)
             time.sleep(0.75)
         except Exception as e:
@@ -420,13 +425,13 @@ def simulationTime():
         time.sleep(1)
         if(timeElapsed==simTime):
             totalVehicles = 0
-            print('Lane-wise Vehicle Counts')
-            for i in range(noOfSignals):
-                print('Lane',i+1,':',vehicles[directionNumbers[i]]['crossed'])
-                totalVehicles += vehicles[directionNumbers[i]]['crossed']
-            print('Total vehicles passed: ',totalVehicles)
-            print('Total time passed: ',timeElapsed)
-            print('No. of vehicles passed per unit time: ',(float(totalVehicles)/float(timeElapsed)))
+            # print('Lane-wise Vehicle Counts')
+            # for i in range(noOfSignals):
+            #     print('Lane',i+1,':',vehicles[directionNumbers[i]]['crossed'])
+            #     totalVehicles += vehicles[directionNumbers[i]]['crossed']
+            # print('Total vehicles passed: ',totalVehicles)
+            # print('Total time passed: ',timeElapsed)
+            # print('No. of vehicles passed per unit time: ',(float(totalVehicles)/float(timeElapsed)))
             os._exit(1)
     
 
@@ -468,8 +473,27 @@ class Main:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 sys.exit()
-
+            
+        # for direction in directionNumbers.values():  
+        #     for lane in range(noOfLanes):
+        #         lane_vehicle_count = len(vehicles[direction][lane])
+        #         print(f"Direction: {direction}, Lane: {lane + 1}, Vehicle Count: {lane_vehicle_count}")
+        
         screen.blit(background,(0,0))   # display background in simulation
+
+        # Display the number of vehicles in each lane for each direction
+        # for direction, direction_name in directionNumbers.items():  
+        #     for lane in range(noOfLanes):
+        #         lane_vehicle_count = len(vehicles[direction_name][lane])
+        #         # Render text to display the vehicle count
+        #         vehicle_count_text = font.render(f"Lane {lane + 1} - {lane_vehicle_count} vehicles", True, black, white)
+        #         # Calculate coordinates to display the text
+        #         text_x = vehicleCountCoods[direction][0]
+        #         text_y = vehicleCountCoods[direction][1] + lane * 25  # Adjust vertical spacing
+        #         # Blit the text onto the screen
+        #         screen.blit(vehicle_count_text, (text_x, text_y))
+
+
         for i in range(0,noOfSignals):  # display signal and set timer according to current status: green, yello, or red
             if(i==currentGreen):
                 if(currentYellow==1):
@@ -490,8 +514,8 @@ class Main:
                         signals[i].signalText = "GO"
                     else:
                         signals[i].signalText = signals[i].red
-                else:
-                    signals[i].signalText = "---"
+                # else:
+                #     signals[i].signalText = "---"
                 screen.blit(redSignal, signalCoods[i])
         signalTexts = ["","","",""]
 
@@ -499,9 +523,9 @@ class Main:
         for i in range(0,noOfSignals):  
             signalTexts[i] = font.render(str(signals[i].signalText), True, white, black)
             screen.blit(signalTexts[i],signalTimerCoods[i]) 
-            displayText = vehicles[directionNumbers[i]]['crossed']
-            vehicleCountTexts[i] = font.render(str(displayText), True, black, white)
-            screen.blit(vehicleCountTexts[i],vehicleCountCoods[i])
+            # displayText = vehicles[directionNumbers[i]]['crossed']
+            # vehicleCountTexts[i] = font.render(str(displayText), True, black, white)
+            # screen.blit(vehicleCountTexts[i],vehicleCountCoods[i])
 
         timeElapsedText = font.render(("Time Elapsed: "+str(timeElapsed)), True, black, white)
         screen.blit(timeElapsedText,(1100,50))
