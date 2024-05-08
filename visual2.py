@@ -1,5 +1,6 @@
 import tkinter as tk
 import random
+from modell import *
 
 class TrafficLightGUI:
     def __init__(self, root):
@@ -9,6 +10,8 @@ class TrafficLightGUI:
         self.traffic_lights = []
         self.timers = []
         self.traffic_time = 0
+        self.vehicle_num = []
+        self.num_of_vehicles = 0
 
         # Create labels for lanes
         self.lanes = ["Lane 1", "Lane 2", "Lane 3", "Lane 4"]
@@ -28,6 +31,9 @@ class TrafficLightGUI:
             light = self.create_traffic_light(row=1, column=i)
             self.traffic_lights.append(light)
 
+        self.count_label = tk.Label(root, text=0, font=("Helvetica", 12))
+        self.count_label.grid(row = 4, column=3)
+
     def create_traffic_light(self, row, column):
         traffic_light = tk.Canvas(self.root, width=40, height=100, bg="black", highlightthickness=0)
         traffic_light.create_oval(10, 10, 30, 30, fill="red", outline="")
@@ -38,12 +44,21 @@ class TrafficLightGUI:
     
     def start_light(self):
         self.change_light()
-        self.traffic_time = random.randint(3,10)* 1000
+
+        self.num_of_vehicles = random.randint(5,15)
+        count_string = "Vehicle count: " + str(self.num_of_vehicles)
+        self.count_label.config(text=count_string)
+
+        self.vehicle_num.append(self.num_of_vehicles)
+        print(self.vehicle_num)
+        self.traffic_time = int(vehicle_count(self.vehicle_num)) * 1000
+        self.vehicle_num = []
         print(self.traffic_time//1000)
         self.timers[self.current_lane_index].config(text=self.traffic_time//1000)
         self.timers[(self.current_lane_index+1)%4].config(text=0)
         self.timers[(self.current_lane_index+2)%4].config(text=0)
         self.timers[(self.current_lane_index+3)%4].config(text=0)
+
         self.root.after(self.traffic_time + 1000, self.start_light)  # Change light every 3 seconds
     
     def change_light(self):
@@ -58,7 +73,7 @@ class TrafficLightGUI:
         self.traffic_lights[self.current_lane_index].itemconfigure(2, fill="yellow")
 
         # Schedule the next change after a delay of 2000 milliseconds
-        self.root.after(2000, self.change_to_green)
+        self.root.after(3000, self.change_to_green)
            
         
         #self.traffic_lights[next_lane_index].itemconfigure(1, fill="black")  # Hide red
