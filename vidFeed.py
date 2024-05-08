@@ -17,7 +17,7 @@ output_layers = [layer_names[i - 1] for i in net.getUnconnectedOutLayers()]
 vehicle_class_ids = [2, 3, 5, 7]  # car, truck, bus, motorbike
 
 # Open video capture
-cap = cv2.VideoCapture("Traffic IP Camera video.mp4")  # Capture from video file
+cap = cv2.VideoCapture("video1.mp4")  # Capture from video file
 
 # last_frame_time = time.time()
 
@@ -75,7 +75,7 @@ while cap.isOpened():
         for i in indices.flatten():
             x, y, w, h = boxes[i]
             cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
-        cv2.putText(frame, f'Vehicles: {len(indices)}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+        # cv2.putText(frame, f'Vehicles: {len(indices)}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
 
         # Display frame
         cv2.imshow("Frame", frame)

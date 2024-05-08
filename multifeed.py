@@ -77,11 +77,17 @@ while True:
         # Apply non-maximum suppression to remove redundant bounding boxes
         indices = cv2.dnn.NMSBoxes(boxes, confidences, score_threshold=0.5, nms_threshold=0.4)
 
-   # Draw bounding boxes and count vehicles
+    # Draw bounding boxes and count vehicles
+    vehicle_count = 0
     for i in indices.flatten():
-      x, y, w, h = boxes[i]
-      cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
-      cv2.putText(frame, f'Vehicle', (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+        x, y, w, h = boxes[i]
+        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+        cv2.putText(frame, f'Vehicle', (x, y - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+        vehicle_count += 1
+
+        # Draw vehicle count on frame
+        cv2.rectangle(frame, (10, 10), (150, 30), (0, 0, 0), -1)  # Draw filled black rectangle as background
+        cv2.putText(frame, f'Vehicles: {vehicle_count}', (15, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 255), 1,cv2.LINE_AA)
     for i, cap in enumerate(caps): 
 
    # Place frame in grid
