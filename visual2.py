@@ -46,7 +46,7 @@ class TrafficLightGUI:
         self.change_light()
 
         self.num_of_vehicles = random.randint(5,15)
-        count_string = "vehicle count: " + str(self.num_of_vehicles)
+        count_string = "Vehicle count: " + str(self.num_of_vehicles)
         self.count_label.config(text=count_string)
 
         self.vehicle_num.append(self.num_of_vehicles)
