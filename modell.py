@@ -28,4 +28,4 @@ def vehicle_count(num):
     #print(predicted_output[0][0])
     return predicted_output[0][0]
 
-#print(vehicle_count([25]))
+print(vehicle_count([25]))

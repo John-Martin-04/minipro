@@ -1,3 +1,4 @@
+
 import cv2
 import tkinter as tk
 import numpy as np
@@ -81,30 +82,23 @@ def vehicle_detection():
             indices = cv2.dnn.NMSBoxes(boxes, confidences, score_threshold=0.5, nms_threshold=0.4)
 
     # Draw bounding boxes and count vehicles
-        for i in indices.flatten():
-            x, y, w, h = boxes[i]
-            cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
-        cv2.putText(frame, f'Vehicle: {len(indices)}', (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-        for i, cap in enumerate(caps): 
+            for i in indices.flatten():
+                x, y, w, h = boxes[i]
+                cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+            cv2.putText(frame, f'Vehicle: {len(indices)}', (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+            for i, cap in enumerate(caps): 
 
     # Place frame in grid
-            y_start = (i // cols) * (grid_height // rows)
-            y_end = y_start + (grid_height // rows)  # Corrected calculation
-            if y_end > grid_height:
-                    y_end = grid_height
-            x_start = (i % cols) * (grid_width // cols)
-            x_end = x_start + (grid_width // cols)
-            if x_end > grid_width:
-                    x_end = grid_width
+                y_start = (i // cols) * (grid_height // rows)
+                y_end = y_start + (grid_height // rows)  # Corrected calculation
+                if y_end > grid_height:
+                        y_end = grid_height
+                x_start = (i % cols) * (grid_width // cols)
+                x_end = x_start + (grid_width // cols)
+                if x_end > grid_width:
+                        x_end = grid_width
 
-            '''print("x_start:", x_start)
-            print("x_end:", x_end)
-            print("y_start:", y_start)
-            print("y_end:", y_end)
-            print("Frame shape:", frame.shape)
-            print("Output frame slice shape:", output_frame[y_start:y_end, x_start:x_end].shape)'''
-
-            output_frame[y_start:y_end, x_start:x_end] = frame
+                output_frame[y_start:y_end, x_start:x_end] = frame
 
         # Display grid
         
